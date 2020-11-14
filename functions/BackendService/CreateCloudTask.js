@@ -10,7 +10,7 @@ const queue = process.env.GOOGLE_QUEUE_NAME;
 const url = `https://${location}-${project}.cloudfunctions.net/dayFinished`;
 const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT;
 
-function callCloudTask(fecha, payload) {
+function callCloudTask(dateTask, payload) {
     const formattedParent = client.queuePath(project, location, queue);
     const task = {
         name: `projects/${project}/locations/${location}/queues/${queue}/tasks/${payload.name}`,
@@ -26,7 +26,7 @@ function callCloudTask(fecha, payload) {
             },
         },
         scheduleTime: {
-            seconds: fecha / 1000
+            seconds: dateTask / 1000
         }
     };
     const request = {

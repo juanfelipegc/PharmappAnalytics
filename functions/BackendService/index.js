@@ -58,35 +58,43 @@ const addMedicineUser = async (idUser, medicine) => {
             dateAdded: new Date()
         })
         let days = medicine.days
+        let promises = []
         for (let i = 0; i < days; i++) {
-            let todayDate = new Date()
-            let dateMed = todayDate.setDate(todayDate.getDate() + i)
-            let finalDate = moment(dateMed).format('D MMM')
-            let snapshotMeds = await dbFirestore.collection(`users/${idUser}/calendar/${finalDate}/medicines`).get()
-            let numMeds = snapshotMeds.size + 1
-            await dbFirestore.doc(`users/${idUser}/calendar/${finalDate}`).set({
-                day: finalDate,
-                times: numMeds
-            }, {merge: true})
-            await dbFirestore.doc(`users/${idUser}/calendar/${finalDate}/medicines/${medicine.id}`).set({
-                hours: medicine.time,
-                name: medicine.name,
-                tag: medicine.tag
-            })
-            let taskName = idUser + finalDate.trim()
-            let payload = {
-                name: taskName,
-                idUser: idUser,
-                idDate: finalDate
-            }
-            let resTask = await callCloudTask(dateMed, )
-            console.log(resTask)
+            promises.push(addCalendarAndMedicine(idUser, medicine, i))
         }
+        await Promise.all(promises)
         return "Added"
     } catch (e) {
         console.log(e)
         return e
     }
+}
+
+const addCalendarAndMedicine = async (idUser, medicine, i) => {
+    let todayDate = new Date()
+    let dateMed = todayDate.setDate(todayDate.getDate() + i)
+    let finalDate = moment(dateMed).format('D MMM')
+    let snapshotMeds = await dbFirestore.collection(`users/${idUser}/calendar/${finalDate}/medicines`).get()
+    let numMeds = snapshotMeds.size + 1
+    await dbFirestore.doc(`users/${idUser}/calendar/${finalDate}`).set({
+        day: finalDate,
+        times: numMeds
+    }, {merge: true})
+    await dbFirestore.doc(`users/${idUser}/calendar/${finalDate}/medicines/${medicine.id}`).set({
+        hours: medicine.time,
+        name: medicine.name,
+        tag: medicine.tag
+    })
+    let taskName = idUser + finalDate
+    let dateTask = dateMed.setMinutes(dateMed.getMinutes() + 60)
+    let finalName = taskName.replace(' ','')
+    console.log(finalName)
+    let payload = {
+        name: finalName,
+        idUser: idUser,
+        idDate: finalDate
+    }
+    callCloudTask(dateTask, payload)
 }
 
 exports.dayFinished = functions.https.onRequest(async (req, res) => {

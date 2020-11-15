@@ -1,5 +1,5 @@
 const functions = require('firebase-functions');
-const {dbFirestore} = require('../Firebase')
+const {admin, dbFirestore} = require('../Firebase')
 const moment = require('moment')
 const {callCloudTask} = require('./CreateCloudTask');
 const {generateHash} = require('random-hash')
@@ -56,6 +56,7 @@ const addMedicineUser = async (idUser, medicine) => {
             brand: medicine.brand,
             tag: medicine.tag,
             time: medicine.time,
+            numPills: medicine.numPills,
             dateAdded: new Date()
         })
         let days = medicine.days
@@ -73,7 +74,7 @@ const addMedicineUser = async (idUser, medicine) => {
         }
         await Promise.all(promises)
         cloudTasks.forEach((task) => {
-            sendCloudTask(idUser, task.finalDate, task.dateMed).then((res)=>{
+            sendCloudTask(idUser, task.finalDate, task.dateMed, medicine.id).then((res)=>{
                 console.log(res)
                 return res
             }).catch((err) => {
@@ -88,7 +89,7 @@ const addMedicineUser = async (idUser, medicine) => {
     }
 }
 
-const sendCloudTask = async(idUser, finalDate, dateMed) => {
+const sendCloudTask = async(idUser, finalDate, dateMed, medicineId) => {
     let dateTask = new Date(dateMed)
     dateTask.setHours(23)
     dateTask.setMinutes(59)
@@ -96,7 +97,8 @@ const sendCloudTask = async(idUser, finalDate, dateMed) => {
     let payload = {
         name: nameTask,
         idUser: idUser,
-        idDate: finalDate
+        idDate: finalDate,
+        idMed: medicineId
     }
     await callCloudTask(dateTask, payload)
 }
@@ -121,6 +123,7 @@ exports.dayFinished = functions.https.onRequest(async (req, res) => {
     try {
         let idUser = payload.idUser
         let dateDelete = payload.idDate
+        let idMedicine = payload.idMed
         let snapshot = await dbFirestore.collection(`users/${idUser}/calendar/${dateDelete}/medicines`).get()
         const batch = dbFirestore.batch();
         snapshot.docs.forEach((doc) => {
@@ -128,6 +131,9 @@ exports.dayFinished = functions.https.onRequest(async (req, res) => {
         });
         await batch.commit();
         await dbFirestore.doc(`users/${idUser}/calendar/${dateDelete}`).delete()
+        await dbFirestore.doc(`users/${idUser}/medicine/${idMedicine}`).update({
+            numPills: admin.firestore.FieldValue.increment(-1)
+        })
         res.status(200).send("Day finished");
     } catch (error) {
         console.error(error);

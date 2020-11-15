@@ -2,6 +2,7 @@ const functions = require('firebase-functions');
 const {dbFirestore} = require('../Firebase')
 const moment = require('moment')
 const {callCloudTask} = require('./CreateCloudTask');
+const {generateHash} = require('random-hash')
 /*
 First function to add a medicine, this validates if there are adverse effects
  */
@@ -59,10 +60,27 @@ const addMedicineUser = async (idUser, medicine) => {
         })
         let days = medicine.days
         let promises = []
+        let cloudTasks = []
         for (let i = 0; i < days; i++) {
-            promises.push(addCalendarAndMedicine(idUser, medicine, i))
+            let todayDate = new Date()
+            let dateMed = todayDate.setDate(todayDate.getDate() + i)
+            let finalDate = moment(dateMed).format('D MMM')
+            cloudTasks[i] = {
+                dateMed,
+                finalDate
+            }
+            promises.push(addCalendarAndMedicine(idUser, medicine, finalDate))
         }
         await Promise.all(promises)
+        cloudTasks.forEach((task) => {
+            sendCloudTask(idUser, task.finalDate, task.dateMed).then((res)=>{
+                console.log(res)
+                return res
+            }).catch((err) => {
+                console.log(err)
+                return err
+            })
+        })
         return "Added"
     } catch (e) {
         console.log(e)
@@ -70,10 +88,20 @@ const addMedicineUser = async (idUser, medicine) => {
     }
 }
 
-const addCalendarAndMedicine = async (idUser, medicine, i) => {
-    let todayDate = new Date()
-    let dateMed = todayDate.setDate(todayDate.getDate() + i)
-    let finalDate = moment(dateMed).format('D MMM')
+const sendCloudTask = async(idUser, finalDate, dateMed) => {
+    let dateTask = new Date(dateMed)
+    dateTask.setHours(23)
+    dateTask.setMinutes(59)
+    let nameTask = generateHash({length: 20})
+    let payload = {
+        name: nameTask,
+        idUser: idUser,
+        idDate: finalDate
+    }
+    await callCloudTask(dateTask, payload)
+}
+
+const addCalendarAndMedicine = async (idUser, medicine, finalDate) => {
     let snapshotMeds = await dbFirestore.collection(`users/${idUser}/calendar/${finalDate}/medicines`).get()
     let numMeds = snapshotMeds.size + 1
     await dbFirestore.doc(`users/${idUser}/calendar/${finalDate}`).set({
@@ -85,16 +113,6 @@ const addCalendarAndMedicine = async (idUser, medicine, i) => {
         name: medicine.name,
         tag: medicine.tag
     })
-    let taskName = idUser + finalDate
-    let dateTask = dateMed.setMinutes(dateMed.getMinutes() + 60)
-    let finalName = taskName.replace(' ','')
-    console.log(finalName)
-    let payload = {
-        name: finalName,
-        idUser: idUser,
-        idDate: finalDate
-    }
-    callCloudTask(dateTask, payload)
 }
 
 exports.dayFinished = functions.https.onRequest(async (req, res) => {
@@ -103,7 +121,7 @@ exports.dayFinished = functions.https.onRequest(async (req, res) => {
     try {
         let idUser = payload.idUser
         let dateDelete = payload.idDate
-        let snapshot = dbFirestore.collection(`users/${idUser}/calendar/${dateDelete}/medicines`).get()
+        let snapshot = await dbFirestore.collection(`users/${idUser}/calendar/${dateDelete}/medicines`).get()
         const batch = dbFirestore.batch();
         snapshot.docs.forEach((doc) => {
             batch.delete(doc.ref);

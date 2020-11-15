@@ -1,5 +1,5 @@
-const {v2beta3} = require("@google-cloud/tasks");
-const client = new v2beta3.CloudTasksClient();
+const {CloudTasksClient} = require('@google-cloud/tasks');
+const client = new CloudTasksClient({ fallback: true });
 
 /*
 Function to create the cloud tasks
@@ -17,7 +17,7 @@ function callCloudTask(dateTask, payload) {
         httpRequest: {
             httpMethod: "POST",
             url: url,
-            body: Buffer.from(JSON.stringify(payload)).toString("base64"),
+            body: Buffer.from(JSON.stringify(payload)),
             headers: {
                 "Content-Type": "application/json"
             },

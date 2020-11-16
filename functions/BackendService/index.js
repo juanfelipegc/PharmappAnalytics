@@ -45,6 +45,24 @@ exports.addMedicine = functions.https.onCall(async (data, context) => {
         return 'Unauthorized'
 });
 
+exports.addMedicineRisk = functions.https.onCall(async (data, context) => {
+    let uid = context.auth.uid
+    if (uid !== null) {
+        let idMed = data.uid
+        if (idMed) {
+            let docMed = await dbFirestore.doc(`medicines/${idMed}`).get()
+            if (!docMed.exists) {
+                return "No medicine found"
+            } else {
+                let medicine = docMed.data()
+                return addMedicineUser(uid, medicine)
+            }
+        } else
+            return "No id medicine receive"
+    } else
+        return 'Unauthorized'
+})
+
 const addMedicineUser = async (idUser, medicine) => {
     try {
         await dbFirestore.doc(`users/${idUser}/medicine/${medicine.id}`).set({

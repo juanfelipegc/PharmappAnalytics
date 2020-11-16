@@ -15,4 +15,5 @@ exports.updateNews = analytics.updateNews;
 ////////////////////////////////////////////////////////////////////////////////
 const backend = require('./BackendService/index');
 exports.addMedicine = backend.addMedicine;
+exports.addMedicineRisk = backend.addMedicineRisk;
 exports.dayFinished = backend.dayFinished;

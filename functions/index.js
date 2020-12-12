@@ -9,6 +9,7 @@ const analytics = require('./AnalyticsService/index');
 exports.updateUsersData = analytics.updateUsersData;
 exports.updateNotConsumed = analytics.updateNotConsumed;
 exports.updateNews = analytics.updateNews;
+exports.newMedicine = analytics.newMedicine;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Backend Service Endpoints

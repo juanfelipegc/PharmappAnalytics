@@ -15,13 +15,15 @@
   "main": "index.js",
   "dependencies": {
     "@google-cloud/tasks": "^2.1.2",
+    "age-calculator": "^1.0.0",
     "crypto": "^1.0.1",
     "dotenv": "^8.2.0",
     "firebase-admin": "^8.10.0",
     "firebase-functions": "^3.6.1",
     "moment": "^2.29.1",
     "pg": "^8.4.1",
-    "random-hash": "^4.0.1"
+    "random-hash": "^4.0.1",
+    "s-age": "^1.1.2"
   },
   "devDependencies": {
     "eslint": "^5.12.0",
